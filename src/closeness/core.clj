@@ -56,7 +56,7 @@
 	  (let [[node & remaining] remaining-nodes]
 	    (recur remaining (into final-nodes (node graph)))))))
 
-(defn recursive-closeness
+(defn- recursive-closeness
   "Recursively gets the closeness from a give root node"
   [remaining-nodes all-nodes farness iterator graph]
 	(if (empty? remaining-nodes)
@@ -68,19 +68,23 @@
 (defn add-closeness
   "Adds closeness for a given node and graph"
   [node graph]
-  {node (recursive-closeness [node] [node] 0 0 graph)})
+  (if (and (contains? graph node) (not (empty? graph)))
+    {node (recursive-closeness [node] [node] 0 0 graph)}
+	{}))
   
 (defn create-closeness-map
   "Generates the closeness map from a graph"
   [graph-keys graph]
-  (loop [remaining-graph-keys graph-keys
-         final-map {}]
-    (if (empty? remaining-graph-keys)
-	  final-map
-	  (let [[node & remaining] remaining-graph-keys]
-	    (recur remaining (into final-map (add-closeness node graph)))))))
+  (if (empty? graph)
+    {}
+    (loop [remaining-graph-keys graph-keys
+           final-map {}]
+      (if (empty? remaining-graph-keys)
+	    final-map
+	    (let [[node & remaining] remaining-graph-keys]
+	      (recur remaining (into final-map (add-closeness node graph))))))))
 		
-(defn update-closeness-k
+(defn- update-closeness-k
   "Updates the closeness map with a given k"
   [nodes k closeness-map]
   (let [multiplier (fk k)]
@@ -91,7 +95,7 @@
 		(let [[node & remaining] remaining-nodes]
 		  (recur remaining (into final-map (update-in final-map [node] * multiplier))))))))
 			
-(defn recursive-fraudulent
+(defn- recursive-fraudulent
   "Set a vertex as fraudulent and update every value from closeness-map"
   [remaining-nodes all-nodes closeness-map graph iterator]
   (if (empty? remaining-nodes)
@@ -102,7 +106,9 @@
 (defn set-fraudulent
   "Set a vertex as fraudulent and update every value from closeness-map"
   [fraudulent closeness-map graph]
-  (recursive-fraudulent [fraudulent] [fraudulent] closeness-map graph 0))
+  (if (and (contains? graph fraudulent) (not (empty? graph)) (not (empty? closeness-map)))
+    (recursive-fraudulent [fraudulent] [fraudulent] closeness-map graph 0)
+	closeness-map))
   
   
 (def original-edges (map make-edges (read-lines (.getPath (clojure.java.io/resource "edges.txt")))))
